@@ -1,0 +1,48 @@
+services:
+  - docker:dind
+
+image: maven:3.6.3-openjdk-8
+stages:
+  - build
+  - package
+  - deploy
+
+build_job:
+  stage: build
+  script:
+    - mvn help:evaluate -Dexpression=project.version -q -DforceStdout > version.txt
+    - mvn clean package
+    - cp target/advisor-*.jar ./app.jar
+  artifacts:
+    paths:
+      - version.txt
+      - app.jar
+    
+package_job:
+  stage: package
+  image: docker:latest
+  script:
+    - VERSION=$(cat version.txt)
+    - echo "Building Version $VERSION"
+    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" docker.io
+    - docker build -t nicopaez/advisor:$VERSION .
+    - docker push nicopaez/advisor:$VERSION
+  only:
+    - master
+
+deploy_job:
+  stage: deploy
+  image: alpine:3.7
+  environment: develop
+  script:
+    - VERSION=$(cat version.txt)
+    - TEAM=$(echo $VERSION | cut -c 7-12)
+    - apk update  && apk add --no-cache curl grep
+    - curl -LO https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl
+    - chmod +x ./kubectl && mv ./kubectl /usr/local/bin/kubectl
+    - mkdir -p ${HOME}/.kube
+    - echo ${TEAM}
+    - cat ${KUBECONFIG} > $HOME/.kube/config
+    - kubectl set image deployment/advisor-${TEAM} advisor=nicopaez/advisor:$VERSION
+  only:
+    - master

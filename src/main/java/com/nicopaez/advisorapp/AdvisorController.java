@@ -15,6 +15,13 @@ public class AdvisorController {
     @Autowired
     BuildProperties buildProperties;
 
+    @RequestMapping(value="/health", method= RequestMethod.GET)
+    public Map<String, Object> health() {
+        Map<String, Object> map = new HashMap<String, Object>();
+        map.put("status", "ok");
+        return map;
+    }
+
     @RequestMapping(value="/", method= RequestMethod.GET)
     public Map<String, Object> index() {
         Map<String, Object> map = new HashMap<String, Object>();

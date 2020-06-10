@@ -19,7 +19,7 @@ public class MyStepdefs extends AbstractSteps{
     @Then("the app semantic version is returned")
     public void theAppVersionIsReturned() {
         Response response = testContext().getResponse();
-        assertThat(response.statusCode()).isIn(200, 201);
+        assertThat(response.statusCode()).isIn(200);
         String semanticVersion = response.jsonPath().getString("version");
         assertThat(semanticVersion).matches(semanticVersionRegEx);
     }
